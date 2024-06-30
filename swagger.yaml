@@ -1,0 +1,252 @@
+openapi: 3.0.0
+info:
+  title: Bank API
+  version: 1.0.0
+  description: 'An API that allows users to perform CRUD operations on user resource and a ledger transfer resource in a bank application.'
+tags:
+  - name: User
+    description: user operations
+  - name: Ledger
+    description: ledger operations
+paths:
+  /users:
+    post:
+      tags:
+        - User
+      summary: Create a user
+      description: Create a user 
+      operationId: addUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        "201":
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User" 
+        "400":
+          description: Invalid data supplied
+        "422":
+          description: Validation exception
+    get:
+      tags:
+        - User
+      summary: Get all users
+      description: Get all the users with all their information
+      operationId: getAllUsers
+      responses:
+        "200":
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "500":
+          description: Internal server error
+  /users/{id}:
+    get:
+      tags:
+        - User
+      summary: Get a user
+      description: Get a particular user using id
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the user to be retrieved 
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "500":
+          description: Internal server error
+    put:
+      tags:
+        - User
+      summary: Update a user
+      description: Update the information of a single user retrieved by Id
+      operationId: updateUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the user to be updated
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        "200":
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "422":
+          description: Validation exception
+        "404":  
+          description: User not found 
+    delete:
+      tags:
+        - User
+      summary: Delete a user
+      description: Delete a user by id
+      operationId: deleteUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the user to be deleted
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User deleted successfully
+        "500": 
+          description: Internal server error 
+  /ledger/balance:
+    get:
+      tags:
+        - Ledger
+      summary: See balance
+      description: See the balance of an account retrieved by id
+      operationId: getAccountBalance
+      parameters:
+        - name: accountId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The ID of the account to check the balance for
+      responses:
+        "200":
+          description: Current balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balance:
+                    type: number
+                    format: float
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "404":
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /ledger/transfer:
+    post:
+      tags:
+        - Ledger
+      summary: Transfer money from one account to another
+      description: Transfer money from one account to another
+      operationId: transferMoney
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Transfer"
+      responses:
+        "200":
+          description: Transfer completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transfer"
+        "422":
+          description: Validation exception
+        "500":
+          description: Internal server error
+  /ledger/transfer/history:
+    get:
+      tags:
+        - Ledger
+      summary: Get transfer history
+      description: Get the entire transfer history made between any accounts
+      operationId: getTransferHistory
+      responses:
+        "200":
+          description: Transfer history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transfer"
+        "500":
+          description: Internal server error
+  /ledger/transfer/{id}:
+    get:
+      tags:
+        - Ledger
+      summary: Get transfer information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the particular transfer to be retrieved
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transfer information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transfer"
+        "500":
+          description: Internal server error
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          example: johndoe@abc.com
+        password:
+          type: string
+    Transfer:
+      type: object
+      properties:
+        fromAccountId:
+          type: string
+        toAccountId:
+          type: string
+        amount:
+          type: number
+          format: float

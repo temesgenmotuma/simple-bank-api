@@ -1,0 +1,3 @@
+apis:
+  ../../../E:/api/bank/swagger.yaml:
+    alias: bank-api
