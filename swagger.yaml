@@ -55,7 +55,7 @@ paths:
       tags:
         - User
       summary: Get a user
-      description: Get a particular user using id
+      description: Get a particular user using his/her id
       operationId: getUserById
       parameters:
         - name: id
@@ -73,6 +73,8 @@ paths:
                 $ref: "#/components/schemas/User"
         "500":
           description: Internal server error
+        "404":
+          description: User not founds
     put:
       tags:
         - User
@@ -103,6 +105,8 @@ paths:
           description: Validation exception
         "404":  
           description: User not found 
+        "500":
+          description: Internal server error
     delete:
       tags:
         - User
@@ -119,8 +123,40 @@ paths:
       responses:
         "200":
           description: User deleted successfully
+        "404":
+          description: User not fount
         "500": 
           description: Internal server error 
+  /users/deleted:
+    get:
+      tags:
+        - User
+      summary: See deleted users
+      description: See all the users who have been marked as deleted
+      operationId: getDeletedUsers
+      responses:
+        "200":
+          description: Complete list of deleted users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "500":
+          description: Internal server error
+  /users/deleteall:
+    delete:
+      tags:
+        - User
+      summary: Permanently delete all the users 
+      description: Permanently delete all the users
+      operationId: deleteAllUsers
+      responses:
+        "200":
+          description: All users Deleted
+        "500":
+          description: Internal server error   
   /ledger/balance:
     get:
       tags:
@@ -184,9 +220,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Transfer"
+        "404":
+          description: Either sender or receiver account was not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: response message 
         "422":
           description: Validation exception
-        "500":
+        "400":
           description: Internal server error
   /ledger/transfer/history:
     get:
@@ -227,6 +273,8 @@ paths:
                 $ref: "#/components/schemas/Transfer"
         "500":
           description: Internal server error
+        "404":
+          description: Transfer not found
 components:
   schemas:
     User:

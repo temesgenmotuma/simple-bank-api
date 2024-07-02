@@ -11,6 +11,9 @@ const userSchema = Joi.object({
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
+      where: {
+        deletedAt: null,
+      },
       include: {
         accounts: true,
       },
@@ -54,6 +57,7 @@ exports.getOneUser = async (req, res) => {
     const user = await prisma.user.findUnique({
       where: {
         id: req.params.id,
+        deletedAt: null,
       },
       include: {
         accounts: true,
@@ -72,54 +76,123 @@ exports.updateUser = async (req, res) => {
   if (error) return res.status(422).send(error.details[0].message);
 
   const { name, email, password } = req.body;
+  const userId = req.params.id;
+
   try {
-    const user = await prisma.user.update({
-      where: {
-        id: req.params.id,
-      },
-      data: {
-        name,
-        email,
-        password,
-      },
-      include: {
-        accounts: true,
-      },
+    await prisma.$transaction(async (prisma) => {
+      const userExists = await prisma.user.findUnique({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+      });
+
+      if (!userExists)
+        throw {
+          message: "The user wasn't found",
+          code: 404,
+        };
+
+      const user = await prisma.user.update({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+        data: {
+          name,
+          email,
+          password,
+        },
+        include: {
+          accounts: true,
+        },
+      });
+      res.json(user);
     });
-    res.json(user);
   } catch (error) {
-    res.status(404).json({ message: error.message });
+    if (error.code === 404) res.status(404).json({ message: error.message });
+    else {
+      res.status(500);
+      console.log(error);
+    }
   }
 };
 
 exports.deleteUser = async (req, res) => {
   const userId = req.params.id;
   try {
-    /*   //handle the transfer that references the account
-    //if the transfers is from the account the account to be deleted update the fromAccountId foreign key 
-    //if transfers is to the account to be deleted update the toAccountId foreign key
-    // if () {
-      
-    // }
-    await prisma.transfer.update({
-      where:{
-        toAccount: 
-      }
-    });
-    await prisma.account.delete({
-      where: {
-        userId: userId,
-      },
-    }); */
+    await prisma.$transaction(async (prisma) => {
+      const user = await prisma.user.findUnique({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+      });
 
-    await prisma.user.delete({
+      if (!user)
+        throw {
+          message: "User not found",
+          code: 404,
+        };
+
+      await prisma.user.update({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+
+      await prisma.account.update({
+        where: {
+          userId: userId,
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+    });
+
+    res.json({
+      message: "User and their accounts marked as deleted successfully",
+    });
+  } catch (error) {
+    if (error.code === 404) res.status(404).json({ message: error.message });
+    else {
+      res.status(500);
+      console.log(error);
+    }
+  }
+};
+
+exports.getDeletedUsers = async (req, res) => {
+  try {
+    const deletedUsers = await prisma.user.findMany({
       where: {
-        id: userId,
+        NOT: {
+          deletedAt: null,
+        },
+      },
+      include: {
+        accounts: true,
       },
     });
-    res.json({ message: `Deleted user with id ${userId}` });
+    res.status(200).json(deletedUsers);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).send({ errmessage: error.message });
     console.log(error);
+  }
+};
+
+exports.deleteAllUsers = async (req, res) => {
+  try {
+    await prisma.user.deleteMany();
+    res.json("Deleted all users");
+  } catch (err) {
+    res.status(500);
+    console.log(err);
   }
 };
